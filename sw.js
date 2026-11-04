@@ -1,4 +1,4 @@
-const CACHE_NAME = "my-life-os-shell-v2.4";
+const CACHE_NAME = "my-life-os-shell-v2.5";
 const APP_FILES = ["./", "./index.html", "./styles.css", "./app.js", "./manifest.webmanifest", "./icon.svg"];
 
 self.addEventListener("install", (event) => {

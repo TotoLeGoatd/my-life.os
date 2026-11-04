@@ -19,7 +19,8 @@ Ouvrez ensuite `http://localhost:8000`. Le service worker peut alors mettre l'ap
 ## Données et sauvegardes
 
 - **Accueil** : les actions du jour correspondant aux catégories choisies, avec validation rapide.
-- **365 Challenges** : programme de 365 jours, avec choix de 1 à 5 catégories (365 à 1 825 actions), exemples, choix du jour, filtres, validations et commentaires. Le jour 1 commence à la première ouverture.
+- **365 Challenges** : programme de 365 jours, avec choix de 1 à 15 catégories (365 à 5 475 actions), exemples, choix du jour, filtres, validations et commentaires. Le jour 1 commence à la première ouverture.
+- **Catégories** : Intelligence, Maisongaudino, Sport, Discipline, Vie sociale & autonomie, Santé & énergie, Bien-être mental, Créativité, Finances personnelles, Études & carrière, Maison & organisation, Cuisine & alimentation, Culture, Nature & plein air et Numérique.
 - **Progression** : calendrier, jours actifs, séries et avancement par catégorie.
 - **Sauvegarder** : télécharge un fichier JSON contenant le parcours, les catégories choisies et les commentaires. Les anciennes notes restent préservées si elles se trouvent dans tes données.
 - **Restaurer** : importe ce fichier sur le même appareil ou sur un autre. La restauration remplace les données présentes dans ce navigateur.

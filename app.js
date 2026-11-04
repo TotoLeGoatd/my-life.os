@@ -1,6 +1,7 @@
 // All personal data stays scoped to this browser's local storage.
 const STORAGE_KEY = "mylifeos.data.v1";
-const CATEGORIES = ["Intelligence", "Maisongaudino", "Sport", "Discipline", "Vie sociale & autonomie"];
+const CATEGORIES = ["Intelligence", "Maisongaudino", "Sport", "Discipline", "Vie sociale & autonomie", "Santé & énergie", "Bien-être mental", "Créativité", "Finances personnelles", "Études & carrière", "Maison & organisation", "Cuisine & alimentation", "Culture", "Nature & plein air", "Numérique"];
+const DEFAULT_CATEGORY_COUNT = 5;
 const NOTE_TYPES = ["Note", "Idée", "Découverte", "Citation", "Apprentissage"];
 
 const ICONS = {
@@ -204,6 +205,206 @@ const CHALLENGE_PLANS = [
       () => ({ title: "Prends une décision pratique par toi-même", description: "Choisis une option et passe à la suite." }),
       () => ({ title: "Prépare ton itinéraire pour un prochain rendez-vous", description: "Vérifie le trajet et l’heure de départ." })
     ]
+  },
+  {
+    category: "Santé & énergie", code: "health", tasks: [
+      () => ({ title: "Sors marcher 15 minutes", description: "Choisis un rythme agréable." }),
+      (n) => ({ title: `Fais ${5 + n * 2} minutes de mobilité`, description: "Bouge doucement, sans forcer." }),
+      () => ({ title: "Prépare une bouteille d’eau pour la journée", description: "Garde-la à portée de main." }),
+      () => ({ title: "Prends une pause loin de l’écran", description: "Lève-toi et change d’air quelques minutes." }),
+      () => ({ title: "Prends un peu l’air à la lumière du jour", description: "Même un court moment suffit." }),
+      (n) => ({ title: `Marche ${10 + n * 5} minutes après un repas`, description: "Une promenade tranquille, à ton rythme." }),
+      () => ({ title: "Prépare une tenue confortable pour demain", description: "Choisis-la pour te faciliter la matinée." }),
+      () => ({ title: "Étire doucement le haut du corps", description: "Relâche les épaules et respire normalement." }),
+      (n) => ({ title: `Fais une pause active de ${3 + n} minutes`, description: "Quelques pas ou mouvements légers." }),
+      () => ({ title: "Prépare un petit-déjeuner simple pour demain", description: "Mets de côté ce dont tu auras besoin." }),
+      () => ({ title: "Éloigne ton téléphone pendant une activité", description: "Profite de ce moment sans notifications." }),
+      (n) => ({ title: `Fais ${5 + n * 2} minutes d’exercices doux`, description: "Adapte les mouvements à tes sensations." }),
+      () => ({ title: "Aère la pièce où tu passes le plus de temps", description: "Ouvre la fenêtre quelques minutes si possible." }),
+      () => ({ title: "Prends un vrai moment de pause", description: "Assieds-toi et laisse ton esprit souffler." }),
+      (n) => ({ title: `Fais une promenade de ${15 + n * 5} minutes`, description: "Choisis un trajet facile à suivre." }),
+      () => ({ title: "Prépare une collation qui te plaît", description: "Choisis quelque chose de simple et nourrissant." })
+    ]
+  },
+  {
+    category: "Bien-être mental", code: "mind", tasks: [
+      () => ({ title: "Note trois choses positives de ta journée", description: "Même les petits détails comptent." }),
+      (n) => ({ title: `Prends ${2 + n} minutes pour respirer calmement`, description: "Inspire et expire sans chercher à performer." }),
+      () => ({ title: "Écris ce que tu as en tête", description: "Pose les mots sans chercher à les corriger." }),
+      () => ({ title: "Accorde-toi dix minutes sans écran", description: "Fais une chose calme, juste pour toi." }),
+      () => ({ title: "Écoute un morceau qui te fait du bien", description: "Prends le temps de l’écouter jusqu’au bout." }),
+      () => ({ title: "Repère une chose que tu as bien faite", description: "Reconnais l’effort, même modeste." }),
+      (n) => ({ title: `Fais une pause calme de ${5 + n * 2} minutes`, description: "Installe-toi dans un endroit tranquille." }),
+      () => ({ title: "Écris une inquiétude et une petite action possible", description: "Choisis une étape réaliste, ou note que tu peux attendre." }),
+      () => ({ title: "Prends un moment dehors sans rien écouter", description: "Observe ce qui se passe autour de toi." }),
+      () => ({ title: "Lis quelques pages pour le plaisir", description: "Choisis un texte qui te donne envie." }),
+      () => ({ title: "Écris un mot gentil à toi-même", description: "Parle-toi comme tu le ferais à un ami." }),
+      () => ({ title: "Fais une activité lente sans te presser", description: "Laisse le résultat de côté." }),
+      (n) => ({ title: `Éloigne-toi des notifications pendant ${10 + n * 5} minutes`, description: "Reviens à ton téléphone quand tu le décides." }),
+      () => ({ title: "Identifie ce qui t’aiderait aujourd’hui", description: "Un besoin simple, concret et à ta portée." }),
+      () => ({ title: "Remercie quelqu’un qui t’a soutenu", description: "Un message court et sincère suffit." }),
+      () => ({ title: "Termine la journée avec une chose dont tu es fier", description: "Note-la pour t’en souvenir." })
+    ]
+  },
+  {
+    category: "Créativité", code: "create", tasks: [
+      (n) => ({ title: `Dessine pendant ${5 + n * 2} minutes`, description: "Choisis un objet près de toi." }),
+      (n) => ({ title: `Prends ${3 + n} photos de détails intéressants`, description: "Cherche des formes ou des lumières originales." }),
+      () => ({ title: "Écris le début d’une histoire", description: "Une phrase suffit pour lancer l’idée." }),
+      () => ({ title: "Crée une petite playlist de cinq morceaux", description: "Donne-lui une ambiance ou un titre." }),
+      () => ({ title: "Fais un collage avec trois images", description: "Découpe-les ou assemble-les numériquement." }),
+      () => ({ title: "Invente un nom pour un projet imaginaire", description: "Note aussi pourquoi tu l’as choisi." }),
+      (n) => ({ title: `Écris ${50 + n * 25} mots librement`, description: "Ne relis pas avant d’avoir fini." }),
+      () => ({ title: "Dessine un objet sans lever le crayon", description: "Le résultat n’a pas besoin d’être parfait." }),
+      () => ({ title: "Imagine une affiche pour un film inventé", description: "Choisis son titre et une image centrale." }),
+      () => ({ title: "Change un détail dans une tenue que tu aimes", description: "Teste une association différente." }),
+      () => ({ title: "Enregistre une idée de vidéo ou de photo", description: "Ajoute une première étape pour la réaliser." }),
+      () => ({ title: "Écris trois idées sans les juger", description: "Garde celle qui te donne le plus envie." }),
+      () => ({ title: "Reproduis une forme ou un motif qui t’inspire", description: "Observe les lignes et les contrastes." }),
+      () => ({ title: "Crée quelque chose avec un objet du quotidien", description: "Détourne-le ou transforme-le simplement." }),
+      () => ({ title: "Prends une photo en noir et blanc", description: "Joue avec les ombres et la lumière." }),
+      () => ({ title: "Partage une création avec quelqu’un", description: "Demande un retour sur un détail précis." })
+    ]
+  },
+  {
+    category: "Finances personnelles", code: "money", tasks: [
+      (n) => ({ title: `Note ${3 + n} dépenses récentes`, description: "Classe-les sans te juger." }),
+      () => ({ title: "Vérifie le solde de ton compte", description: "Prends simplement connaissance de la situation." }),
+      () => ({ title: "Repère une dépense récurrente", description: "Note son montant et sa date de prélèvement." }),
+      () => ({ title: "Fixe un petit objectif d’épargne", description: "Choisis un montant adapté à ta situation." }),
+      () => ({ title: "Compare deux prix avant un achat", description: "Regarde aussi la quantité et les frais." }),
+      () => ({ title: "Prépare une liste avant tes prochaines courses", description: "Note d’abord ce dont tu as vraiment besoin." }),
+      () => ({ title: "Range un reçu ou une facture", description: "Choisis un endroit où tu le retrouveras." }),
+      (n) => ({ title: `Classe ${5 + n * 5} opérations récentes`, description: "Repère les entrées et les sorties." }),
+      () => ({ title: "Écris une dépense que tu veux anticiper", description: "Note une date ou un montant estimé." }),
+      () => ({ title: "Prépare un repas avec ce que tu as déjà", description: "Fais l’inventaire avant d’acheter autre chose." }),
+      () => ({ title: "Choisis une limite simple pour un achat plaisir", description: "Décide-la avant de regarder les options." }),
+      () => ({ title: "Mets à jour une ligne de ton budget", description: "Un chiffre exact vaut mieux qu’une estimation vague." }),
+      () => ({ title: "Repère une offre dont tu n’as plus besoin", description: "Décide si tu veux la garder après vérification." }),
+      () => ({ title: "Compare le prix au kilo de deux produits", description: "Note l’option la plus adaptée à tes besoins." }),
+      () => ({ title: "Prévois une dépense pour la semaine", description: "Anticipe sans chercher à tout prévoir." }),
+      () => ({ title: "Note une chose que tu as apprise sur ton budget", description: "Garde une idée utile pour le mois prochain." })
+    ]
+  },
+  {
+    category: "Études & carrière", code: "career", tasks: [
+      (n) => ({ title: `Travaille ${15 + n * 5} minutes sur un projet`, description: "Choisis une seule prochaine étape." }),
+      () => ({ title: "Mets à jour une ligne de ton CV", description: "Ajoute une expérience ou précise une compétence." }),
+      () => ({ title: "Apprends une nouvelle fonction d’un outil", description: "Essaie-la tout de suite sur un exemple." }),
+      () => ({ title: "Écris trois compétences que tu utilises souvent", description: "Ajoute un exemple concret pour l’une d’elles." }),
+      () => ({ title: "Prépare une question à poser à un professionnel", description: "Garde-la pour un prochain échange." }),
+      () => ({ title: "Range les documents d’un projet ou d’un cours", description: "Mets les fichiers utiles au même endroit." }),
+      (n) => ({ title: `Lis ${10 + n * 5} minutes sur ton domaine`, description: "Note une idée à réutiliser." }),
+      () => ({ title: "Écris le prochain geste à faire sur un projet", description: "Formule-le de façon à pouvoir commencer." }),
+      () => ({ title: "Améliore une phrase de ton profil professionnel", description: "Rends-la plus claire et plus concrète." }),
+      () => ({ title: "Prépare un espace de travail sans distraction", description: "Garde uniquement ce qu’il te faut." }),
+      () => ({ title: "Relis un cours ou un document important", description: "Résume l’idée principale en une phrase." }),
+      () => ({ title: "Demande un retour sur un travail précis", description: "Pose une question simple pour guider la réponse." }),
+      () => ({ title: "Planifie un créneau pour avancer cette semaine", description: "Choisis un moment réaliste dans ton agenda." }),
+      () => ({ title: "Repère une offre ou une opportunité intéressante", description: "Note ce qui correspond à tes objectifs." }),
+      () => ({ title: "Explique une compétence que tu maîtrises", description: "Présente-la avec un exemple simple." }),
+      () => ({ title: "Célèbre une étape terminée dans ton parcours", description: "Note ce que tu as fait pour y arriver." })
+    ]
+  },
+  {
+    category: "Maison & organisation", code: "home", tasks: [
+      (n) => ({ title: `Range un coin pendant ${5 + n * 5} minutes`, description: "Arrête-toi quand le minuteur sonne." }),
+      () => ({ title: "Fais ton lit ou remets les coussins en place", description: "Un petit geste pour démarrer." }),
+      (n) => ({ title: `Remets ${5 + n * 3} objets à leur place`, description: "Commence par ce qui traîne le plus." }),
+      () => ({ title: "Nettoie une surface que tu utilises souvent", description: "Un bureau ou un plan de travail suffit." }),
+      () => ({ title: "Prépare tes affaires pour demain", description: "Regroupe-les près de la porte." }),
+      () => ({ title: "Trie un tiroir ou une petite boîte", description: "Garde uniquement ce que tu veux retrouver." }),
+      () => ({ title: "Lance une lessive ou plie quelques vêtements", description: "Choisis une seule étape à terminer." }),
+      (n) => ({ title: `Range ${3 + n} documents`, description: "Classe-les dans un dossier facile à retrouver." }),
+      () => ({ title: "Vide un sac ou un manteau de ce qui l’encombre", description: "Jette les déchets et range le reste." }),
+      () => ({ title: "Prépare un sac pour ta prochaine sortie", description: "Vérifie les essentiels avant de partir." }),
+      () => ({ title: "Remets en ordre l’entrée de ton logement", description: "Libère le passage et rassemble tes affaires." }),
+      () => ({ title: "Choisis un objet à donner ou à recycler", description: "Prends quelque chose dont tu ne te sers plus." }),
+      () => ({ title: "Fais une petite tâche ménagère jusqu’au bout", description: "Choisis celle qui prendra le moins de temps." }),
+      () => ({ title: "Prépare un endroit calme pour te reposer", description: "Ajuste la lumière ou range ce qui gêne." }),
+      () => ({ title: "Note une amélioration simple pour ton espace", description: "Décide si tu peux la faire cette semaine." }),
+      () => ({ title: "Range les objets d’une seule étagère", description: "Garde les choses utilisées ensemble à proximité." })
+    ]
+  },
+  {
+    category: "Cuisine & alimentation", code: "food", tasks: [
+      (n) => ({ title: `Prépare un repas simple avec ${3 + n} ingrédients`, description: "Fais avec ce que tu as déjà." }),
+      () => ({ title: "Essaie un fruit ou un légume que tu aimes", description: "Ajoute-le simplement à un repas." }),
+      () => ({ title: "Prépare une boisson maison", description: "Eau aromatisée, thé ou autre idée simple." }),
+      () => ({ title: "Note trois repas faciles à refaire", description: "Garde-les dans une liste pour plus tard." }),
+      () => ({ title: "Organise un repas sans téléphone", description: "Profite du moment sans distraction." }),
+      () => ({ title: "Prépare une portion en plus pour demain", description: "Range-la au frais si le plat s’y prête." }),
+      () => ({ title: "Découvre une recette avec un ingrédient que tu as", description: "Choisis une recette simple et accessible." }),
+      () => ({ title: "Range un espace de la cuisine", description: "Nettoie le plan ou remets quelques ustensiles." }),
+      (n) => ({ title: `Prépare une liste de ${5 + n} ingrédients utiles`, description: "Vérifie d’abord ce qu’il reste chez toi." }),
+      () => ({ title: "Apprends à préparer un aliment différemment", description: "Teste une cuisson ou un assaisonnement simple." }),
+      () => ({ title: "Prépare un repas coloré", description: "Assemble des ingrédients qui te plaisent." }),
+      () => ({ title: "Prépare une collation pour une sortie", description: "Choisis quelque chose de pratique à emporter." }),
+      () => ({ title: "Essaie une recette d’une autre culture", description: "Choisis une version simple avec des ingrédients accessibles." }),
+      () => ({ title: "Prépare la table avant de manger", description: "Rends le repas un peu plus agréable." }),
+      () => ({ title: "Nettoie et range après avoir cuisiné", description: "Termine par le plan de travail." }),
+      () => ({ title: "Ajoute une recette que tu aimes à tes favoris", description: "Note ce qu’il te faut pour la refaire." })
+    ]
+  },
+  {
+    category: "Culture", code: "culture", tasks: [
+      (n) => ({ title: `Lis ${10 + n * 5} pages d’un livre`, description: "Choisis un passage qui t’intéresse." }),
+      () => ({ title: "Écoute un album en entier", description: "Repère le morceau qui te reste en tête." }),
+      () => ({ title: "Découvre un artiste ou un auteur", description: "Lis quelques lignes sur son parcours." }),
+      () => ({ title: "Regarde un court documentaire gratuit", description: "Note une chose que tu ignorais." }),
+      () => ({ title: "Visite une exposition ou un lieu culturel", description: "Cherche une option gratuite près de toi." }),
+      () => ({ title: "Écoute une musique d’une autre époque", description: "Observe ce qui te semble différent." }),
+      () => ({ title: "Lis un poème ou un texte court", description: "Garde un vers ou une phrase en mémoire." }),
+      () => ({ title: "Découvre un film d’un autre pays", description: "Choisis une œuvre que tu ne connais pas." }),
+      () => ({ title: "Apprends l’histoire d’un bâtiment connu", description: "Trouve une date ou un détail intéressant." }),
+      () => ({ title: "Regarde une œuvre d’art attentivement", description: "Note ce que tu remarques en premier." }),
+      () => ({ title: "Découvre un podcast culturel", description: "Écoute un épisode ou un extrait." }),
+      () => ({ title: "Lis une actualité liée à la culture", description: "Choisis une source que tu connais." }),
+      () => ({ title: "Partage une œuvre que tu apprécies", description: "Explique en une phrase pourquoi elle te plaît." }),
+      () => ({ title: "Découvre un instrument de musique", description: "Écoute comment il sonne dans un morceau." }),
+      () => ({ title: "Visite un lieu historique près de chez toi", description: "Repère un détail que tu n’avais jamais remarqué." }),
+      () => ({ title: "Écris une mini-critique d’un livre ou d’un film", description: "Une phrase sur ce que tu as aimé." })
+    ]
+  },
+  {
+    category: "Nature & plein air", code: "outdoor", tasks: [
+      (n) => ({ title: `Passe ${10 + n * 5} minutes dehors`, description: "Choisis un endroit agréable et accessible." }),
+      () => ({ title: "Repère cinq sons autour de toi", description: "Écoute quelques instants sans musique." }),
+      () => ({ title: "Observe une plante ou un arbre", description: "Regarde les détails des feuilles ou de l’écorce." }),
+      () => ({ title: "Fais un trajet à pied que tu prends d’habitude en voiture", description: "Seulement si le trajet est sûr et pratique." }),
+      () => ({ title: "Photographie un détail de la nature", description: "Une feuille, le ciel ou une texture." }),
+      () => ({ title: "Marche dans une rue que tu connais peu", description: "Reste dans un endroit sûr." }),
+      () => ({ title: "Regarde le ciel pendant quelques minutes", description: "Note la météo ou les formes des nuages." }),
+      () => ({ title: "Ramasse un déchet sur ton chemin", description: "Fais-le seulement si c’est sans danger." }),
+      (n) => ({ title: `Fais une petite promenade de ${15 + n * 5} minutes`, description: "Choisis un parcours facile à adapter." }),
+      () => ({ title: "Repère un espace vert près de chez toi", description: "Garde son adresse pour une prochaine balade." }),
+      () => ({ title: "Observe les oiseaux ou les insectes autour de toi", description: "Regarde sans les déranger." }),
+      () => ({ title: "Prends ton café ou ta pause dehors", description: "Profite de l’air quelques minutes." }),
+      () => ({ title: "Découvre un nouveau coin de ton quartier", description: "Choisis un trajet court et public." }),
+      () => ({ title: "Regarde le coucher ou le lever du soleil", description: "Fais une pause pour en profiter." }),
+      () => ({ title: "Vérifie la météo et prépare une sortie", description: "Choisis un moment adapté à la journée." }),
+      () => ({ title: "Prends soin d’une plante", description: "Arrose-la ou enlève une feuille abîmée." })
+    ]
+  },
+  {
+    category: "Numérique", code: "digital", tasks: [
+      (n) => ({ title: `Supprime ${10 + n * 5} captures d’écran inutiles`, description: "Garde uniquement celles que tu veux retrouver." }),
+      () => ({ title: "Range un dossier de fichiers", description: "Donne aux documents des noms faciles à reconnaître." }),
+      () => ({ title: "Désactive une notification qui ne t’aide pas", description: "Tu pourras la réactiver si besoin." }),
+      () => ({ title: "Fais une sauvegarde de tes photos importantes", description: "Vérifie que les fichiers sont bien enregistrés." }),
+      () => ({ title: "Supprime une application que tu n’utilises plus", description: "Assure-toi d’abord qu’aucune donnée utile n’y reste." }),
+      (n) => ({ title: `Trie ${5 + n * 5} e-mails`, description: "Archive ou supprime ce dont tu n’as plus besoin." }),
+      () => ({ title: "Nettoie l’écran d’accueil de ton téléphone", description: "Garde à portée de main les applis utiles." }),
+      () => ({ title: "Fais une pause téléphone pendant un repas", description: "Pose-le hors de vue le temps du moment." }),
+      () => ({ title: "Vérifie l’espace libre sur ton appareil", description: "Repère les fichiers volumineux inutiles." }),
+      () => ({ title: "Organise tes favoris ou tes marque-pages", description: "Supprime les liens expirés et garde les utiles." }),
+      () => ({ title: "Mets à jour une application que tu utilises", description: "Fais-le sur un réseau de confiance." }),
+      () => ({ title: "Retrouve un document numérique important", description: "Range-le dans un dossier facile à retrouver." }),
+      () => ({ title: "Nettoie tes téléchargements", description: "Garde les fichiers que tu souhaites conserver." }),
+      () => ({ title: "Éloigne ton téléphone pendant 15 minutes", description: "Choisis une activité hors écran." }),
+      () => ({ title: "Vérifie les réglages de confidentialité d’une appli", description: "Choisis ce qui te convient pour le partage de données." }),
+      () => ({ title: "Fais le tri dans une conversation ou un groupe", description: "Archive les discussions que tu veux moins voir." })
+    ]
   }
 ];
 
@@ -230,7 +431,7 @@ const CHALLENGE_BY_ID = new Map(CHALLENGES.map((challenge) => [challenge.id, cha
 function normalizeCategorySettings(countValue, categoriesValue) {
   const requestedCount = Number.isInteger(countValue) && countValue >= 1 && countValue <= CATEGORIES.length
     ? countValue
-    : (Array.isArray(categoriesValue) && categoriesValue.length ? Math.min(CATEGORIES.length, categoriesValue.length) : CATEGORIES.length);
+    : (Array.isArray(categoriesValue) && categoriesValue.length ? Math.min(CATEGORIES.length, categoriesValue.length) : DEFAULT_CATEGORY_COUNT);
   const selectedCategories = Array.isArray(categoriesValue)
     ? [...new Set(categoriesValue.filter((category) => CATEGORIES.includes(category)))].slice(0, requestedCount)
     : CATEGORIES.slice(0, requestedCount);
@@ -295,7 +496,7 @@ function sampleState() {
     startedAt: localDateKey(),
     notes: [],
     challengeLog: {},
-    ...normalizeCategorySettings(CATEGORIES.length, CATEGORIES)
+    ...normalizeCategorySettings(DEFAULT_CATEGORY_COUNT, CATEGORIES.slice(0, DEFAULT_CATEGORY_COUNT))
   };
 }
 
