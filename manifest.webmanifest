@@ -4,7 +4,7 @@
   "short_name": "My Life OS",
   "description": "Tes défis quotidiens pour progresser dans tes domaines.",
   "lang": "fr-FR",
-  "start_url": "./",
+  "start_url": "./#challenges",
   "scope": "./",
   "display": "standalone",
   "prefer_related_applications": false,

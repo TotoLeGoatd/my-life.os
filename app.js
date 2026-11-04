@@ -225,6 +225,20 @@ const CHALLENGE_DAYS = Array.from({ length: 365 }, (_, dayIndex) => {
 });
 const CHALLENGES = CHALLENGE_DAYS.flat();
 const CHALLENGE_IDS = new Set(CHALLENGES.map((challenge) => challenge.id));
+const CHALLENGE_BY_ID = new Map(CHALLENGES.map((challenge) => [challenge.id, challenge]));
+
+function normalizeCategorySettings(countValue, categoriesValue) {
+  const requestedCount = Number.isInteger(countValue) && countValue >= 1 && countValue <= CATEGORIES.length
+    ? countValue
+    : (Array.isArray(categoriesValue) && categoriesValue.length ? Math.min(CATEGORIES.length, categoriesValue.length) : CATEGORIES.length);
+  const selectedCategories = Array.isArray(categoriesValue)
+    ? [...new Set(categoriesValue.filter((category) => CATEGORIES.includes(category)))].slice(0, requestedCount)
+    : CATEGORIES.slice(0, requestedCount);
+  return {
+    categoryCount: requestedCount,
+    selectedCategories: selectedCategories.length ? selectedCategories : CATEGORIES.slice(0, requestedCount)
+  };
+}
 
 function normalizeChallengeLog(source) {
   const normalized = {};
@@ -280,7 +294,8 @@ function sampleState() {
     version: 1,
     startedAt: localDateKey(),
     notes: [],
-    challengeLog: {}
+    challengeLog: {},
+    ...normalizeCategorySettings(CATEGORIES.length, CATEGORIES)
   };
 }
 
@@ -299,7 +314,8 @@ function readState() {
       version: 1,
       startedAt: isValidDateKey(parsed.startedAt) ? parsed.startedAt : inferChallengeStartDate(challengeLog),
       notes: parsed.notes,
-      challengeLog
+      challengeLog,
+      ...normalizeCategorySettings(parsed.categoryCount, parsed.selectedCategories)
     };
   } catch {
     return sampleState();
@@ -356,7 +372,24 @@ function currentDayNumber(date = new Date()) {
 }
 
 function completedEntries() {
-  return Object.entries(state.challengeLog).filter(([id, log]) => CHALLENGE_IDS.has(id) && log && log.completedAt);
+  const selected = new Set(activeCategories());
+  return Object.entries(state.challengeLog).filter(([id, log]) => CHALLENGE_IDS.has(id) && selected.has(CHALLENGE_BY_ID.get(id)?.category) && log && log.completedAt);
+}
+
+function activeCategories() {
+  const saved = Array.isArray(state.selectedCategories) ? state.selectedCategories.filter((category) => CATEGORIES.includes(category)) : [];
+  return saved.length ? saved : CATEGORIES;
+}
+
+function challengesForDay(day) {
+  const selected = new Set(activeCategories());
+  return (CHALLENGE_DAYS[day - 1] || [])
+    .filter((challenge) => selected.has(challenge.category))
+    .map((challenge, index, list) => ({ ...challenge, slot: index + 1, totalSlots: list.length }));
+}
+
+function totalSelectedChallenges() {
+  return activeCategories().length * CHALLENGE_DAYS.length;
 }
 
 function completedDates() {
@@ -393,11 +426,14 @@ function completedForCategory(category) {
 }
 
 function completedForDay(day) {
-  return (CHALLENGE_DAYS[day - 1] || []).filter((challenge) => state.challengeLog[challenge.id]?.completedAt).length;
+  return challengesForDay(day).filter((challenge) => state.challengeLog[challenge.id]?.completedAt).length;
 }
 
 function completedDayCount() {
-  return CHALLENGE_DAYS.filter((day) => day.length && day.every((challenge) => state.challengeLog[challenge.id]?.completedAt)).length;
+  return CHALLENGE_DAYS.filter((_, index) => {
+    const day = challengesForDay(index + 1);
+    return day.length && day.every((challenge) => state.challengeLog[challenge.id]?.completedAt);
+  }).length;
 }
 
 function dateForChallengeDay(day) {
@@ -408,7 +444,8 @@ function dateForChallengeDay(day) {
 
 function renderDashboard() {
   const day = currentDayNumber();
-  const dayPack = CHALLENGE_DAYS[day - 1] || [];
+  const dayPack = challengesForDay(day);
+  const dailyTotal = dayPack.length;
   const doneToday = completedForDay(day);
   const doneSummary = `${doneToday} défi${doneToday === 1 ? "" : "s"} terminé${doneToday === 1 ? "" : "s"}`;
   const streak = streakStats().current;
@@ -418,17 +455,17 @@ function renderDashboard() {
     <section class="welcome">
       <div>
         <p class="eyebrow">365 CHALLENGES · JOUR ${String(day).padStart(3, "0")}</p>
-        <h2>Cinq défis.<br />À toi de jouer.</h2>
-        <p class="welcome-description">${doneSummary} sur 5 · ${escapeHtml(dayDate)}</p>
+        <h2>Tes défis.<br />À toi de jouer.</h2>
+        <p class="welcome-description">${doneSummary} sur ${dailyTotal} · ${escapeHtml(dayDate)}</p>
         <a class="button welcome-button" href="#challenges" data-view="challenges">Voir les défis ${icon("arrow")}</a>
       </div>
       <div class="welcome-number" aria-hidden="true">365</div>
     </section>
-    <div class="section-heading"><h2>À faire aujourd’hui</h2><span>${doneToday} / 5 ${doneToday === 1 ? "FAIT" : "FAITS"}</span></div>
+    <div class="section-heading"><h2>À faire aujourd’hui</h2><span>${doneToday} / ${dailyTotal} ${doneToday === 1 ? "FAIT" : "FAITS"}</span></div>
     <section class="home-challenges">${dayPack.map(dashboardChallengeRow).join("")}</section>
     <div class="section-heading"><h2>Ton évolution</h2><a class="text-link" href="#progress" data-view="progress">Voir la progression ${icon("arrow")}</a></div>
     <section class="stats-grid dashboard-stats" aria-label="Statistiques personnelles">
-      ${statCard("target", "ACTIONS VALIDÉES", done, `sur ${CHALLENGES.length}`)}
+      ${statCard("target", "ACTIONS VALIDÉES", done, `sur ${totalSelectedChallenges()}`)}
       ${statCard("calendar", "JOURS COMPLETS", completedDayCount(), "sur 365")}
       ${statCard("flame", "SÉRIE ACTUELLE", streak, streak === 1 ? "jour" : "jours")}
     </section>`;
@@ -453,17 +490,30 @@ function emptyState(iconName, title, description, button = "") {
 
 function renderChallenges() {
   const query = challengeSearch.trim().toLocaleLowerCase("fr");
-  const dayPack = CHALLENGE_DAYS[selectedChallengeDay - 1];
+  const dayPack = challengesForDay(selectedChallengeDay);
   const filtered = dayPack.filter((challenge) => (challengeFilter === "Toutes" || challenge.category === challengeFilter) && (!query || `${challenge.title} ${challenge.description} ${challenge.category}`.toLocaleLowerCase("fr").includes(query)));
   const done = completedEntries().length;
   const doneToday = completedForDay(selectedChallengeDay);
   const doneSummary = `${doneToday} défi${doneToday === 1 ? "" : "s"} terminé${doneToday === 1 ? "" : "s"}`;
   const streak = streakStats().current;
-  const progress = Math.round(doneToday / 5 * 100);
+  const progress = dayPack.length ? Math.round(doneToday / dayPack.length * 100) : 0;
   const dayDate = formatDate(dateForChallengeDay(selectedChallengeDay), { weekday: "long", day: "numeric", month: "long" });
   const todayNumber = currentDayNumber();
+  const selected = activeCategories();
+  const categoryExamples = new Map(CATEGORIES.map((category) => [category, CHALLENGE_DAYS[0].find((challenge) => challenge.category === category)]));
+  const selectedCount = selected.length;
   document.querySelector("#mainView").innerHTML = `
-    ${pageHeading("365 CHALLENGES", "Les défis du jour.", "Cinq actions concrètes, une dans chaque domaine.")}
+    ${pageHeading("365 CHALLENGES", "Les défis du jour.", "Choisis ton rythme et les catégories qui te ressemblent.")}
+    <section class="category-customizer surface">
+      <div class="category-customizer-heading"><div><div class="eyebrow">TON PROGRAMME</div><h2>Combien de catégories par jour ?</h2><p>Une action par catégorie, chaque jour.</p></div><div class="category-count-picker" role="group" aria-label="Nombre de catégories par jour">${CATEGORIES.map((_, index) => index + 1).map((count) => `<button type="button" class="category-count-button ${state.categoryCount === count ? "active" : ""}" data-action="category-count" data-count="${count}" aria-label="${count} catégorie${count === 1 ? "" : "s"} par jour" aria-pressed="${state.categoryCount === count}">${count}</button>`).join("")}</div></div>
+      <div class="category-choice-summary"><span>${selectedCount} / ${state.categoryCount} catégorie${state.categoryCount === 1 ? "" : "s"} choisie${selectedCount === 1 ? "" : "s"}</span><small>${selectedCount === state.categoryCount ? "Pour changer, décoche un choix puis sélectionne-en un autre." : `Choisis encore ${state.categoryCount - selectedCount} catégorie${state.categoryCount - selectedCount === 1 ? "" : "s"}.`}</small></div>
+      <div class="category-choice-grid">${CATEGORIES.map((category) => {
+        const example = categoryExamples.get(category);
+        const isSelected = selected.includes(category);
+        const isUnavailable = !isSelected && selectedCount >= state.categoryCount;
+        return `<button type="button" class="category-choice ${isSelected ? "selected" : ""}" data-action="category-choice" data-category-choice="${escapeHtml(category)}" aria-pressed="${isSelected}" ${isUnavailable ? "disabled" : ""}><span class="category-choice-top"><strong>${escapeHtml(category)}</strong><span class="category-choice-mark">${isSelected ? icon("check") : "+"}</span></span><span class="category-choice-label">EXEMPLE</span><span class="category-choice-example">${escapeHtml(example?.title || "Un défi à découvrir")}</span></button>`;
+      }).join("")}</div>
+    </section>
     <div class="challenge-day-nav">
       <button class="day-nav-button" data-action="challenge-day" data-delta="-1" aria-label="Jour précédent" ${selectedChallengeDay === 1 ? "disabled" : ""}>${icon("left")}</button>
       <div class="day-nav-center"><span>JOUR</span><div class="day-number-line"><input id="challengeDayInput" type="number" min="1" max="365" value="${selectedChallengeDay}" aria-label="Choisir un jour" /><span>/ 365</span></div><small>${escapeHtml(dayDate)}</small></div>
@@ -471,7 +521,7 @@ function renderChallenges() {
       <button class="day-nav-button" data-action="challenge-day" data-delta="1" aria-label="Jour suivant" ${selectedChallengeDay === 365 ? "disabled" : ""}>${icon("right")}</button>
     </div>
     <section class="challenge-overview">
-      <div class="challenge-overview-top"><div><h3>${doneSummary} sur 5</h3><p>Jour ${String(selectedChallengeDay).padStart(3, "0")} · ${escapeHtml(dayDate)}</p></div><span class="challenge-percentage">${progress}%</span></div>
+      <div class="challenge-overview-top"><div><h3>${doneSummary} sur ${dayPack.length}</h3><p>Jour ${String(selectedChallengeDay).padStart(3, "0")} · ${escapeHtml(dayDate)}</p></div><span class="challenge-percentage">${progress}%</span></div>
       <div class="progress-track"><div class="progress-fill" style="width:${progress}%"></div></div>
     </section>
     <section class="challenge-stats">
@@ -480,11 +530,11 @@ function renderChallenges() {
       <article class="challenge-stat"><span>SÉRIE ACTUELLE</span><strong>${streak}</strong></article>
     </section>
     <div class="toolbar">
-      <label class="search-box"><span data-icon="search"></span><input id="challengeSearch" type="search" placeholder="Filtrer les 5 défis…" value="${escapeHtml(challengeSearch)}" /></label>
-      <span class="toolbar-spacer"></span><span class="result-count">${filtered.length} / 5</span>
+      <label class="search-box"><span data-icon="search"></span><input id="challengeSearch" type="search" placeholder="Filtrer les ${dayPack.length} défis…" value="${escapeHtml(challengeSearch)}" /></label>
+      <span class="toolbar-spacer"></span><span class="result-count">${filtered.length} / ${dayPack.length}</span>
     </div>
-    <div class="category-tabs"><button class="category-tab ${challengeFilter === "Toutes" ? "active" : ""}" data-category="Toutes">Toutes les catégories</button>${CATEGORIES.map((category) => `<button class="category-tab ${challengeFilter === category ? "active" : ""}" data-category="${escapeHtml(category)}">${escapeHtml(category)}</button>`).join("")}</div>
-    ${filtered.length ? `<div class="challenge-list">${filtered.map(challengeCard).join("")}</div>` : emptyState("target", "Aucune action trouvée", "Modifie ta recherche.")}`;
+    <div class="category-tabs"><button class="category-tab ${challengeFilter === "Toutes" ? "active" : ""}" data-category="Toutes">Toutes</button>${selected.map((category) => `<button class="category-tab ${challengeFilter === category ? "active" : ""}" data-category="${escapeHtml(category)}">${escapeHtml(category)}</button>`).join("")}</div>
+    ${filtered.length ? `<div class="challenge-list">${filtered.map((challenge) => challengeCard(challenge, dayPack.length)).join("")}</div>` : emptyState("target", "Aucune action trouvée", "Modifie ta recherche.")}`;
   replaceIcons(document.querySelector("#mainView"));
   document.querySelector("#challengeSearch")?.addEventListener("input", (event) => {
     challengeSearch = event.target.value;
@@ -504,11 +554,11 @@ function renderChallenges() {
   });
 }
 
-function challengeCard(challenge) {
+function challengeCard(challenge, dailyTotal = activeCategories().length) {
   const log = state.challengeLog[challenge.id] || {};
   const done = !!log.completedAt;
   const comment = (log.comment || "").trim();
-  return `<article class="challenge-card ${done ? "completed" : ""}"><div class="challenge-card-top"><span class="challenge-category">${escapeHtml(challenge.category)}</span><span class="challenge-number">DÉFI ${String(challenge.slot).padStart(2, "0")} / 05</span></div><h3>${escapeHtml(challenge.title)}</h3><p>${escapeHtml(challenge.description)}</p><div class="challenge-card-bottom"><button class="challenge-check ${done ? "done" : ""}" data-action="toggle-challenge" data-id="${challenge.id}" aria-label="${done ? "Annuler" : "Valider"} ${escapeHtml(challenge.title)}">${done ? icon("check") : `<span class="check-empty"></span>`}${done ? "Fait" : "Valider"}</button><button class="challenge-comment-button ${comment ? "has-comment" : ""}" data-action="edit-comment" data-id="${challenge.id}" aria-label="${comment ? "Modifier le commentaire" : "Ajouter un commentaire"}" title="Commentaire">${icon("message")}<span>${comment ? "Noté" : "Commenter"}</span></button></div>${comment ? `<div class="challenge-saved-comment">${icon("message")} ${escapeHtml(comment)}</div>` : ""}</article>`;
+  return `<article class="challenge-card ${done ? "completed" : ""}"><div class="challenge-card-top"><span class="challenge-category">${escapeHtml(challenge.category)}</span><span class="challenge-number">DÉFI ${String(challenge.slot).padStart(2, "0")} / ${String(dailyTotal).padStart(2, "0")}</span></div><h3>${escapeHtml(challenge.title)}</h3><p>${escapeHtml(challenge.description)}</p><div class="challenge-card-bottom"><button class="challenge-check ${done ? "done" : ""}" data-action="toggle-challenge" data-id="${challenge.id}" aria-label="${done ? "Annuler" : "Valider"} ${escapeHtml(challenge.title)}">${done ? icon("check") : `<span class="check-empty"></span>`}${done ? "Fait" : "Valider"}</button><button class="challenge-comment-button ${comment ? "has-comment" : ""}" data-action="edit-comment" data-id="${challenge.id}" aria-label="${comment ? "Modifier le commentaire" : "Ajouter un commentaire"}" title="Commentaire">${icon("message")}<span>${comment ? "Noté" : "Commenter"}</span></button></div>${comment ? `<div class="challenge-saved-comment">${icon("message")} ${escapeHtml(comment)}</div>` : ""}</article>`;
 }
 
 function renderProgress() {
@@ -523,12 +573,12 @@ function renderProgress() {
   const days = [...Array(firstOffset).fill(null), ...Array.from({ length: daysInMonth }, (_, index) => index + 1)];
   const streak = streakStats();
   const done = completedEntries().length;
-  const categoryCounts = CATEGORIES.map((category) => ({ category, count: completedForCategory(category), total: 365 }));
+  const categoryCounts = activeCategories().map((category) => ({ category, count: completedForCategory(category), total: 365 }));
   const monthDoneDays = new Set(completedDates().filter((key) => key.startsWith(`${year}-${String(monthIndex + 1).padStart(2, "0")}-`)));
   document.querySelector("#mainView").innerHTML = `
     ${pageHeading("SUIVI", "Ta progression.", "Un aperçu simple de ton parcours.")}
     <div class="stats-grid progress-stats">
-      ${statCard("target", "Actions", done, `sur ${CHALLENGES.length}`)}
+      ${statCard("target", "Actions", done, `sur ${totalSelectedChallenges()}`)}
       ${statCard("calendar", "Jours actifs", completedDates().length, "au total")}
       ${statCard("flame", "Série", streak.current, streak.current === 1 ? "jour" : "jours")}
       ${statCard("spark", "Record", streak.best, streak.best === 1 ? "jour" : "jours")}
@@ -540,7 +590,7 @@ function renderProgress() {
       const hasProgress = monthDoneDays.has(key);
       return `<button class="calendar-day ${key === today ? "today" : ""} ${hasProgress ? "has-progress" : ""}" data-action="calendar-day" data-date="${key}" title="${hasProgress ? "Défi validé" : "Aucun défi validé"} le ${day}">${day}</button>`;
     }).join("")}</div><div class="calendar-legend"><span class="legend-dot"></span> Au moins un défi validé</div></section>
-      <section class="surface streak-panel"><div><div class="streak-main"><div class="eyebrow">TON RYTHME</div><span class="streak-icon">${icon("flame")}</span></div><div class="streak-value">${streak.current}</div><p>${streak.current === 1 ? "jour consécutif" : "jours consécutifs"}</p></div><div class="streak-bottom"><div><strong>${streak.best}</strong><small>meilleure série</small></div><div><strong>${completedDates().length}</strong><small>jours actifs</small></div><div><strong>${Math.round(done / CHALLENGES.length * 100)}%</strong><small>du parcours</small></div></div></section>
+      <section class="surface streak-panel"><div><div class="streak-main"><div class="eyebrow">TON RYTHME</div><span class="streak-icon">${icon("flame")}</span></div><div class="streak-value">${streak.current}</div><p>${streak.current === 1 ? "jour consécutif" : "jours consécutifs"}</p></div><div class="streak-bottom"><div><strong>${streak.best}</strong><small>meilleure série</small></div><div><strong>${completedDates().length}</strong><small>jours actifs</small></div><div><strong>${Math.round(done / totalSelectedChallenges() * 100)}%</strong><small>du parcours</small></div></div></section>
     </div>
     <section class="surface category-progress-panel"><div class="section-head"><h2>Tes domaines</h2><span class="result-count">1 action par jour</span></div><div class="category-progress-list">${categoryCounts.map(({ category, count, total }) => `<div class="category-progress-row"><span class="category-progress-name"><span class="mini-dot"></span>${escapeHtml(category)}</span><div class="category-progress-track"><span style="width:${Math.min(100, count / total * 100)}%"></span></div><span class="category-progress-value">${count} / ${total}</span></div>`).join("")}</div></section>`;
   replaceIcons(document.querySelector("#mainView"));
@@ -620,7 +670,8 @@ function validImportedState(raw) {
     version: 1,
     startedAt: isValidDateKey(payload.startedAt) ? payload.startedAt : inferChallengeStartDate(challengeLog),
     notes,
-    challengeLog
+    challengeLog,
+    ...normalizeCategorySettings(payload.categoryCount, payload.selectedCategories)
   };
 }
 
@@ -636,7 +687,7 @@ async function importBackup(file) {
     if (!next) throw new Error("Ce fichier ne semble pas être une sauvegarde My Life OS valide.");
     const completedCount = Object.values(next.challengeLog).filter((item) => item.completedAt).length;
     const completedText = `${completedCount} défi${completedCount === 1 ? "" : "s"} validé${completedCount === 1 ? "" : "s"}`;
-    if (!confirm(`Restaurer cette sauvegarde ? Les défis et commentaires actuels seront remplacés. Le fichier contient ${completedText}.`)) return;
+    if (!confirm(`Restaurer cette sauvegarde ? Les défis, préférences et commentaires actuels seront remplacés. Le fichier contient ${completedText}.`)) return;
     state = next;
     persist();
     render();
@@ -690,7 +741,41 @@ document.addEventListener("click", (event) => {
   const actionNode = event.target.closest("[data-action]");
   if (!actionNode) return;
   const { action, id } = actionNode.dataset;
-  if (action === "toggle-challenge") toggleChallenge(id);
+  if (action === "category-count") {
+    const count = Number(actionNode.dataset.count);
+    if (!Number.isInteger(count) || count < 1 || count > CATEGORIES.length) return;
+    const chosen = activeCategories().slice(0, count);
+    for (const categoryName of CATEGORIES) {
+      if (chosen.length >= count) break;
+      if (!chosen.includes(categoryName)) chosen.push(categoryName);
+    }
+    state.categoryCount = count;
+    state.selectedCategories = chosen;
+    challengeFilter = "Toutes";
+    persist();
+    renderChallenges();
+  }
+  else if (action === "category-choice") {
+    const categoryName = actionNode.dataset.categoryChoice;
+    if (!CATEGORIES.includes(categoryName)) return;
+    const chosen = activeCategories();
+    if (chosen.includes(categoryName)) {
+      if (chosen.length === 1) {
+        showToast("Garde au moins une catégorie dans ton programme.");
+        return;
+      }
+      state.selectedCategories = chosen.filter((categoryItem) => categoryItem !== categoryName);
+    } else if (chosen.length < state.categoryCount) {
+      state.selectedCategories = [...chosen, categoryName];
+    } else {
+      showToast("Décoche une catégorie pour pouvoir la remplacer.");
+      return;
+    }
+    if (!state.selectedCategories.includes(challengeFilter)) challengeFilter = "Toutes";
+    persist();
+    renderChallenges();
+  }
+  else if (action === "toggle-challenge") toggleChallenge(id);
   else if (action === "edit-comment") openChallengeComment(id);
   else if (action === "challenge-day") {
     selectedChallengeDay = Math.max(1, Math.min(365, selectedChallengeDay + Number(actionNode.dataset.delta)));
